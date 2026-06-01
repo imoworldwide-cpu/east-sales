@@ -1,0 +1,655 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Azuma NY — 売上報告</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+  /* ============ 1. 設定: ここをご自身の Supabase の値に差し替えてください ============ */
+  /* （値は index.html 末尾の <script> 内 CONFIG にあります） */
+
+  :root{
+    --paper:#f4efe6; --paper-2:#efe8db; --ink:#1c1a17; --ink-soft:#5b554c;
+    --line:#d8cfbe; --line-soft:#e4dccd;
+    --ai:#1f3a5f;            /* 藍 indigo */
+    --ai-deep:#162a45;
+    --shu:#c0392b;           /* 朱 vermilion */
+    --shu-soft:#e9c8c2;
+    --gold:#b08a3e;
+    --ok:#3a6b4f;
+    --card:#fbf8f1;
+    --shadow:0 1px 0 rgba(0,0,0,.03), 0 8px 24px -16px rgba(28,26,23,.35);
+    --r:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(120% 80% at 100% 0%, #faf6ee 0%, rgba(250,246,238,0) 55%),
+      var(--paper);
+    color:var(--ink);
+    font-family:"Zen Kaku Gothic New",system-ui,sans-serif;
+    font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  .mincho{font-family:"Shippori Mincho",serif}
+  .num{font-variant-numeric:tabular-nums; font-feature-settings:"tnum"}
+  button{font-family:inherit; cursor:pointer}
+  input,select,textarea{font-family:inherit; font-size:15px}
+  a{color:var(--ai)}
+
+  /* ---------- layout ---------- */
+  .wrap{max-width:880px; margin:0 auto; padding:0 16px 80px}
+  header.top{
+    position:sticky; top:0; z-index:20;
+    background:rgba(244,239,230,.86); backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .top-in{max-width:880px; margin:0 auto; padding:12px 16px; display:flex; align-items:center; gap:12px}
+  .brand{display:flex; align-items:baseline; gap:10px; margin-right:auto}
+  .brand .mark{
+    font-family:"Shippori Mincho",serif; font-weight:700; font-size:20px; color:var(--ai);
+    letter-spacing:.02em;
+  }
+  .brand .mark b{color:var(--shu)}
+  .brand small{color:var(--ink-soft); font-size:12px; letter-spacing:.18em; text-transform:uppercase}
+  .who{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--ink-soft)}
+  .badge{
+    font-size:11px; letter-spacing:.06em; padding:3px 8px; border-radius:999px;
+    border:1px solid var(--line); background:var(--card);
+  }
+  .badge.hq{color:var(--shu); border-color:var(--shu-soft)}
+  .badge.staff{color:var(--ai)}
+  .lnk{background:none; border:none; color:var(--ink-soft); font-size:13px; text-decoration:underline; padding:4px}
+
+  /* ---------- tabs ---------- */
+  .tabs{display:flex; gap:4px; margin:18px 0 8px}
+  .tab{
+    border:1px solid var(--line); background:var(--card); color:var(--ink-soft);
+    padding:9px 18px; border-radius:999px; font-size:14px; font-weight:500;
+  }
+  .tab.active{background:var(--ai); border-color:var(--ai); color:#fff}
+
+  /* ---------- cards ---------- */
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--r);
+    box-shadow:var(--shadow); padding:18px; margin:14px 0;
+  }
+  .card h2{
+    font-family:"Shippori Mincho",serif; font-weight:600; font-size:17px; margin:0 0 2px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .card h2 .dot{width:7px; height:7px; border-radius:50%; background:var(--shu); display:inline-block}
+  .muted{color:var(--ink-soft); font-size:13px}
+
+  .row{display:flex; gap:12px; flex-wrap:wrap}
+  .field{flex:1 1 160px; min-width:140px}
+  label{display:block; font-size:12px; color:var(--ink-soft); margin:0 0 5px; letter-spacing:.02em}
+  input[type=text],input[type=number],input[type=date],input[type=email],input[type=password],select,textarea{
+    width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:10px;
+    background:#fff; color:var(--ink); outline:none;
+  }
+  input:focus,select:focus,textarea:focus{border-color:var(--ai); box-shadow:0 0 0 3px rgba(31,58,95,.10)}
+  textarea{resize:vertical; min-height:54px}
+
+  /* daypart */
+  .dp{border:1px solid var(--line-soft); border-radius:12px; padding:14px; margin:10px 0; background:#fff}
+  .dp.off{opacity:.5}
+  .dp-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px}
+  .dp-head .name{font-family:"Shippori Mincho",serif; font-weight:600; font-size:15px}
+  .pill-num{font-size:12px; color:var(--ink-soft)}
+  .switch{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--ink-soft)}
+  .split-row{display:none}
+  .dp.split .total-row{display:none}
+  .dp.split .split-row{display:flex}
+
+  /* deliveries */
+  .dlv{display:flex; gap:10px; align-items:flex-end; margin:8px 0}
+  .dlv .field{flex:1 1 auto}
+  .iconbtn{
+    border:1px solid var(--line); background:#fff; color:var(--ink-soft);
+    width:40px; height:40px; border-radius:10px; font-size:18px; line-height:1; flex:0 0 auto;
+  }
+  .addbtn{
+    border:1px dashed var(--line); background:transparent; color:var(--ai);
+    padding:8px 14px; border-radius:10px; font-size:13px; margin-top:4px;
+  }
+
+  /* totals strip */
+  .totals{
+    display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--line);
+    border:1px solid var(--line); border-radius:12px; overflow:hidden; margin-top:6px;
+  }
+  .totals .t{background:var(--card); padding:12px 14px}
+  .totals .t .k{font-size:11px; color:var(--ink-soft); letter-spacing:.04em}
+  .totals .t .v{font-size:18px; font-weight:700; margin-top:2px}
+  .totals .t.grand{background:var(--ai); color:#fff}
+  .totals .t.grand .k{color:#cdd8e6}
+
+  .save{
+    margin-top:14px; width:100%; padding:14px; border:none; border-radius:12px;
+    background:var(--shu); color:#fff; font-size:16px; font-weight:700; letter-spacing:.04em;
+  }
+  .save:disabled{opacity:.5}
+  .status{text-align:center; font-size:13px; margin-top:10px; min-height:18px}
+  .status.ok{color:var(--ok)} .status.err{color:var(--shu)}
+
+  /* summary */
+  .sumgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:12px}
+  .sumcard{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px}
+  .sumcard .k{font-size:12px; color:var(--ink-soft)}
+  .sumcard .v{font-family:"Shippori Mincho",serif; font-size:24px; font-weight:700; margin-top:4px}
+  .sumcard .v small{font-size:13px; color:var(--ink-soft); font-weight:400; font-family:"Zen Kaku Gothic New"}
+
+  table{width:100%; border-collapse:collapse; margin-top:12px; font-size:14px}
+  th,td{padding:10px 8px; text-align:right; border-bottom:1px solid var(--line-soft)}
+  th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}
+  thead th{font-size:11px; color:var(--ink-soft); font-weight:600; letter-spacing:.04em; border-bottom:1px solid var(--line)}
+  tbody tr{cursor:pointer}
+  tbody tr:hover{background:var(--paper-2)}
+  .bt{font-size:11px; padding:2px 7px; border-radius:999px; border:1px solid var(--line); color:var(--ink-soft)}
+  .bt.ramen{color:var(--shu); border-color:var(--shu-soft)}
+  .bt.soba{color:var(--ai); border-color:#c5d2e0}
+  .bt.sushi{color:var(--gold); border-color:#e3d3ac}
+
+  /* ---------- auth ---------- */
+  .auth-wrap{min-height:100vh; display:grid; place-items:center; padding:24px}
+  .auth{width:100%; max-width:380px}
+  .auth .logo{text-align:center; margin-bottom:22px}
+  .auth .logo .mark{font-family:"Shippori Mincho",serif; font-size:30px; color:var(--ai); font-weight:700}
+  .auth .logo .mark b{color:var(--shu)}
+  .auth .logo small{display:block; color:var(--ink-soft); letter-spacing:.2em; font-size:11px; text-transform:uppercase; margin-top:4px}
+  .auth .card{padding:22px}
+  .auth .save{background:var(--ai)}
+  .toggle{text-align:center; margin-top:14px; font-size:13px; color:var(--ink-soft)}
+  .toggle button{background:none; border:none; color:var(--ai); text-decoration:underline; font-size:13px}
+
+  .hint{background:#fff6ed; border:1px solid #f0d9bf; color:#8a5a16; border-radius:10px; padding:12px 14px; font-size:13px; margin:14px 0}
+  .hide{display:none !important}
+  @media(max-width:560px){
+    .totals{grid-template-columns:repeat(2,1fr)}
+    .sumgrid{grid-template-columns:repeat(3,1fr); gap:8px}
+    .sumcard .v{font-size:18px}
+    th,td{padding:9px 5px; font-size:13px}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================= AUTH ============================= -->
+<div id="auth" class="auth-wrap hide">
+  <div class="auth">
+    <div class="logo">
+      <div class="mark mincho">東 <b>Azuma</b> NY</div>
+      <small>Daily Sales Report</small>
+    </div>
+    <div class="card">
+      <div class="field"><label>メールアドレス</label><input id="email" type="email" autocomplete="email" placeholder="you@azuma-ny.com"></div>
+      <div class="field" style="margin-top:12px"><label>パスワード</label><input id="password" type="password" autocomplete="current-password" placeholder="••••••••"></div>
+      <button id="authBtn" class="save">ログイン</button>
+      <div id="authStatus" class="status"></div>
+      <div class="toggle">
+        <span id="toggleText">アカウントをお持ちでない方は</span>
+        <button id="toggleMode">新規登録</button>
+      </div>
+    </div>
+    <p class="muted" style="text-align:center; margin-top:10px">登録後、本部が店舗と権限を割り当てます。</p>
+  </div>
+</div>
+
+<!-- ============================= APP ============================= -->
+<div id="app" class="hide">
+  <header class="top">
+    <div class="top-in">
+      <div class="brand">
+        <span class="mark mincho">東 <b>Azuma</b> NY</span>
+        <small>Sales Report</small>
+      </div>
+      <div class="who">
+        <span id="whoEmail"></span>
+        <span id="whoBadge" class="badge"></span>
+        <button id="signout" class="lnk">ログアウト</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="tabs">
+      <button class="tab active" data-tab="entry">報告入力</button>
+      <button class="tab" data-tab="summary">一覧・集計</button>
+    </div>
+
+    <!-- ---------- ENTRY ---------- -->
+    <section id="tab-entry">
+      <div class="card">
+        <h2><span class="dot"></span>日報入力</h2>
+        <div class="row" style="margin-top:10px">
+          <div class="field"><label>店舗</label><select id="store"></select></div>
+          <div class="field"><label>日付</label><input id="date" type="date"></div>
+        </div>
+        <div id="loadInfo" class="muted" style="margin-top:8px"></div>
+      </div>
+
+      <div class="card">
+        <h2><span class="dot"></span>時間帯別</h2>
+        <p class="muted">来客数（店内 / 持ち帰り）と売上を入力。売上を店内・持ち帰りで分けたい場合は各カードの「内訳で入力」をオンに。</p>
+        <div id="dayparts"></div>
+      </div>
+
+      <div class="card">
+        <h2><span class="dot"></span>デリバリー・その他</h2>
+        <div id="deliveries"></div>
+        <button id="addDlv" class="addbtn">＋ 行を追加</button>
+        <div class="row" style="margin-top:14px">
+          <div class="field"><label>割引 (Discount)</label><input id="discount" type="number" inputmode="decimal" step="0.01" placeholder="0.00"></div>
+          <div class="field" style="flex:2 1 320px"><label>メモ</label><textarea id="note" placeholder="天候・特記事項など"></textarea></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span class="dot"></span>本日の合計</h2>
+        <div class="totals">
+          <div class="t"><div class="k">来客数</div><div class="v num"><span id="tGuests">0</span> <small style="font-size:12px;color:var(--ink-soft)">ppl</small></div></div>
+          <div class="t"><div class="k">店内/持帰 売上</div><div class="v num" id="tDinein">$0.00</div></div>
+          <div class="t"><div class="k">デリバリー</div><div class="v num" id="tDelivery">$0.00</div></div>
+          <div class="t grand"><div class="k">総売上</div><div class="v num" id="tGrand">$0.00</div></div>
+        </div>
+        <button id="save" class="save">保存する</button>
+        <div id="saveStatus" class="status"></div>
+      </div>
+    </section>
+
+    <!-- ---------- SUMMARY ---------- -->
+    <section id="tab-summary" class="hide">
+      <div class="card">
+        <h2><span class="dot"></span>集計条件</h2>
+        <div class="row" style="margin-top:10px">
+          <div class="field"><label>店舗</label><select id="fStore"></select></div>
+          <div class="field"><label>開始日</label><input id="fFrom" type="date"></div>
+          <div class="field"><label>終了日</label><input id="fTo" type="date"></div>
+          <div class="field" style="flex:0 0 auto; display:flex; align-items:flex-end"><button id="fRun" class="addbtn" style="border-style:solid; background:var(--ai); color:#fff">表示</button></div>
+        </div>
+      </div>
+
+      <div class="sumgrid">
+        <div class="sumcard"><div class="k">期間 総売上</div><div class="v num" id="sSales">$0</div></div>
+        <div class="sumcard"><div class="k">来客数</div><div class="v num" id="sGuests">0<small> ppl</small></div></div>
+        <div class="sumcard"><div class="k">報告件数</div><div class="v num" id="sCount">0<small> 件</small></div></div>
+      </div>
+
+      <div class="card">
+        <h2><span class="dot"></span>日報一覧</h2>
+        <p class="muted">行をタップすると「報告入力」で開いて編集できます。</p>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>日付</th><th>店舗</th><th>来客</th><th>店内/持帰</th><th>ﾃﾞﾘﾊﾞﾘｰ</th><th>割引</th><th>総売上</th></tr></thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+        <div id="emptyMsg" class="muted" style="text-align:center; padding:18px"></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div id="configWarn" class="hide" style="max-width:620px;margin:60px auto;padding:0 20px">
+  <div class="hint" style="font-size:14px">
+    <b>設定が未入力です。</b> このファイル末尾の <code>CONFIG</code> にある
+    <code>SUPABASE_URL</code> と <code>SUPABASE_ANON_KEY</code> を、ご自身の Supabase プロジェクトの値に差し替えてください。
+    （Supabase ダッシュボード → Project Settings → API）
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   CONFIG  ★ ここを差し替えてください ★
+   Supabase ダッシュボード → Project Settings → API からコピー
+===================================================================== */
+const CONFIG = {
+  SUPABASE_URL:      "https://YOUR-PROJECT.supabase.co",
+  SUPABASE_ANON_KEY: "YOUR-PUBLIC-ANON-KEY"
+};
+
+/* ---------- 業態ごとの初期テンプレート ---------- */
+const TEMPLATES = {
+  ramen: { dayparts:["lunch","dinner"],             split:false, deliveries:["Uber Eats","DoorDash"] },
+  soba:  { dayparts:["breakfast","lunch","dinner"], split:true,  deliveries:["Uber Eats","Square"] },
+  sushi: { dayparts:["lunch","dinner"],             split:false, deliveries:["Uber Eats","DoorDash"] },
+  other: { dayparts:["lunch","dinner"],             split:false, deliveries:["Uber Eats"] }
+};
+const DP_LABEL = { breakfast:"朝 Breakfast", lunch:"昼 Lunch", dinner:"夜 Dinner" };
+
+/* ---------- helpers ---------- */
+const $  = (s,el=document)=>el.querySelector(s);
+const $$ = (s,el=document)=>[...el.querySelectorAll(s)];
+const num = v => { const n = parseFloat(v); return isNaN(n)?0:n; };
+const money = n => "$"+ (Math.round(n*100)/100).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+const intc  = n => Math.round(n).toLocaleString("en-US");
+const todayISO = () => new Date().toISOString().slice(0,10);
+const firstOfMonth = () => { const d=new Date(); return new Date(d.getFullYear(),d.getMonth(),1).toISOString().slice(0,10); };
+
+let sb, me={ profile:null, stores:[] }, currentReportId=null, deliveryRows=[];
+
+/* ===================================================================== */
+function start(){
+  if (CONFIG.SUPABASE_URL.includes("YOUR-PROJECT") || CONFIG.SUPABASE_ANON_KEY.includes("YOUR-")) {
+    $("#configWarn").classList.remove("hide");
+    return;
+  }
+  sb = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+  bindAuthUI();
+  sb.auth.onAuthStateChange((_e,session)=> session ? enterApp() : showAuth());
+  sb.auth.getSession().then(({data})=> data.session ? enterApp() : showAuth());
+}
+
+/* ---------------- AUTH ---------------- */
+let authMode = "signin";
+function showAuth(){ $("#auth").classList.remove("hide"); $("#app").classList.add("hide"); }
+function bindAuthUI(){
+  $("#toggleMode").onclick = ()=>{
+    authMode = authMode==="signin" ? "signup" : "signin";
+    $("#authBtn").textContent = authMode==="signin" ? "ログイン" : "新規登録";
+    $("#toggleText").textContent = authMode==="signin" ? "アカウントをお持ちでない方は" : "すでにアカウントをお持ちの方は";
+    $("#toggleMode").textContent = authMode==="signin" ? "新規登録" : "ログイン";
+    $("#authStatus").textContent="";
+  };
+  $("#authBtn").onclick = doAuth;
+  $("#password").addEventListener("keydown",e=>{ if(e.key==="Enter") doAuth(); });
+}
+async function doAuth(){
+  const email=$("#email").value.trim(), password=$("#password").value;
+  const st=$("#authStatus"); st.className="status"; st.textContent="処理中…";
+  if(!email||!password){ st.className="status err"; st.textContent="メールとパスワードを入力してください"; return; }
+  try{
+    if(authMode==="signin"){
+      const {error}=await sb.auth.signInWithPassword({email,password});
+      if(error) throw error;
+    }else{
+      const {error}=await sb.auth.signUp({email,password});
+      if(error) throw error;
+      st.className="status ok"; st.textContent="登録しました。確認メールが必要な場合はメールをご確認ください。";
+    }
+  }catch(err){ st.className="status err"; st.textContent=translateAuthError(err.message); }
+}
+function translateAuthError(m){
+  if(/Invalid login/i.test(m)) return "メールまたはパスワードが正しくありません";
+  if(/already registered/i.test(m)) return "このメールは既に登録済みです";
+  if(/at least 6/i.test(m)) return "パスワードは6文字以上にしてください";
+  return m;
+}
+
+/* ---------------- APP ---------------- */
+async function enterApp(){
+  $("#auth").classList.add("hide"); $("#app").classList.remove("hide");
+  const { data:{ user } } = await sb.auth.getUser();
+  const { data:profile } = await sb.from("profiles").select("*").eq("id",user.id).single();
+  me.profile = profile || { role:"staff", store_id:null, email:user.email };
+  $("#whoEmail").textContent = me.profile.email || user.email;
+  const isHQ = me.profile.role==="hq";
+  $("#whoBadge").textContent = isHQ ? "本部 HQ" : "店舗";
+  $("#whoBadge").className = "badge "+(isHQ?"hq":"staff");
+
+  const { data:stores } = await sb.from("stores").select("*").eq("active",true).order("sort_order");
+  me.stores = stores || [];
+
+  buildStoreSelect($("#store"), false);
+  buildStoreSelect($("#fStore"), true);
+  $("#date").value = todayISO();
+  $("#fFrom").value = firstOfMonth();
+  $("#fTo").value   = todayISO();
+
+  bindAppUI();
+  await loadExisting();
+}
+function buildStoreSelect(sel, withAll){
+  sel.innerHTML="";
+  if(withAll){ const o=document.createElement("option"); o.value="all"; o.textContent="全店"; sel.appendChild(o); }
+  me.stores.forEach(s=>{
+    const o=document.createElement("option"); o.value=s.id;
+    o.textContent=s.name; o.dataset.type=s.business_type; sel.appendChild(o);
+  });
+}
+function currentStore(){ return me.stores.find(s=>s.id===$("#store").value); }
+
+function bindAppUI(){
+  $$(".tab").forEach(t=> t.onclick=()=>switchTab(t.dataset.tab));
+  $("#signout").onclick = ()=> sb.auth.signOut();
+  $("#store").onchange = loadExisting;
+  $("#date").onchange  = loadExisting;
+  $("#addDlv").onclick = ()=>{ deliveryRows.push({platform:"",amount:""}); renderDeliveries(); };
+  $("#discount").oninput = recalc;
+  $("#save").onclick = saveReport;
+  $("#fRun").onclick = runSummary;
+}
+function switchTab(name){
+  $$(".tab").forEach(t=> t.classList.toggle("active", t.dataset.tab===name));
+  $("#tab-entry").classList.toggle("hide", name!=="entry");
+  $("#tab-summary").classList.toggle("hide", name!=="summary");
+  if(name==="summary") runSummary();
+}
+
+/* ---------- daypart rendering ---------- */
+function renderDayparts(existing){
+  const store = currentStore(); if(!store) return;
+  const tmpl = TEMPLATES[store.business_type] || TEMPLATES.other;
+  const box = $("#dayparts"); box.innerHTML="";
+  // 全時間帯を表示。テンプレートに無いものは初期 off。
+  ["breakfast","lunch","dinner"].forEach(dp=>{
+    const inTmpl = tmpl.dayparts.includes(dp);
+    const ex = existing && existing.find(d=>d.daypart===dp);
+    const splitDefault = tmpl.split;
+    const splitOn = ex ? (ex.dine_in_sales!=null || ex.to_go_sales!=null) : splitDefault;
+    const el = document.createElement("div");
+    el.className = "dp"+(splitOn?" split":"")+((!inTmpl && !ex)?" off":"");
+    el.dataset.dp = dp;
+    el.innerHTML = `
+      <div class="dp-head">
+        <span class="name mincho">${DP_LABEL[dp]}</span>
+        <label class="switch"><input type="checkbox" class="splitChk" ${splitOn?"checked":""}> 内訳で入力</label>
+      </div>
+      <div class="row">
+        <div class="field"><label>店内 来客 (Dine-in)</label><input class="g-in" type="number" inputmode="numeric" placeholder="0"></div>
+        <div class="field"><label>持帰 来客 (To go)</label><input class="g-to" type="number" inputmode="numeric" placeholder="0"></div>
+      </div>
+      <div class="row total-row" style="margin-top:8px">
+        <div class="field"><label>売上 合計</label><input class="s-tot" type="number" inputmode="decimal" step="0.01" placeholder="0.00"></div>
+      </div>
+      <div class="row split-row" style="margin-top:8px">
+        <div class="field"><label>店内 売上</label><input class="s-in" type="number" inputmode="decimal" step="0.01" placeholder="0.00"></div>
+        <div class="field"><label>持帰 売上</label><input class="s-to" type="number" inputmode="decimal" step="0.01" placeholder="0.00"></div>
+      </div>`;
+    box.appendChild(el);
+    if(ex){
+      $(".g-in",el).value = ex.dine_in_guests || "";
+      $(".g-to",el).value = ex.to_go_guests || "";
+      $(".s-tot",el).value = ex.total_sales || "";
+      $(".s-in",el).value  = ex.dine_in_sales!=null? ex.dine_in_sales : "";
+      $(".s-to",el).value  = ex.to_go_sales!=null? ex.to_go_sales : "";
+    }
+    $(".splitChk",el).onchange = e=>{ el.classList.toggle("split", e.target.checked); recalc(); };
+    $$("input",el).forEach(i=> i.oninput = recalc);
+  });
+  recalc();
+}
+
+/* ---------- deliveries ---------- */
+function renderDeliveries(){
+  const box=$("#deliveries"); box.innerHTML="";
+  deliveryRows.forEach((d,i)=>{
+    const el=document.createElement("div"); el.className="dlv";
+    el.innerHTML=`
+      <div class="field"><label>${i===0?"プラットフォーム":""}</label><input class="d-name" type="text" placeholder="Uber Eats / DoorDash..." value="${d.platform||""}"></div>
+      <div class="field" style="flex:0 1 160px"><label>${i===0?"金額":""}</label><input class="d-amt" type="number" inputmode="decimal" step="0.01" placeholder="0.00" value="${d.amount||""}"></div>
+      <button class="iconbtn" title="削除">×</button>`;
+    $(".d-name",el).oninput = e=> deliveryRows[i].platform=e.target.value;
+    $(".d-amt",el).oninput  = e=>{ deliveryRows[i].amount=e.target.value; recalc(); };
+    $(".iconbtn",el).onclick= ()=>{ deliveryRows.splice(i,1); renderDeliveries(); recalc(); };
+    box.appendChild(el);
+  });
+}
+
+/* ---------- recalc totals ---------- */
+function recalc(){
+  let guests=0, dinein=0;
+  $$(".dp").forEach(el=>{
+    guests += num($(".g-in",el).value) + num($(".g-to",el).value);
+    if(el.classList.contains("split")){
+      const t = num($(".s-in",el).value)+num($(".s-to",el).value);
+      $(".s-tot",el).value = t? t.toFixed(2):"";
+      dinein += t;
+    }else{
+      dinein += num($(".s-tot",el).value);
+    }
+  });
+  let delivery=0; deliveryRows.forEach(d=> delivery+=num(d.amount));
+  const discount = num($("#discount").value);
+  const grand = dinein + delivery - discount;
+  $("#tGuests").textContent  = intc(guests);
+  $("#tDinein").textContent  = money(dinein);
+  $("#tDelivery").textContent= money(delivery);
+  $("#tGrand").textContent   = money(grand);
+}
+
+/* ---------- load existing report ---------- */
+async function loadExisting(){
+  const store = currentStore(); if(!store){ return; }
+  const date = $("#date").value;
+  const info = $("#loadInfo");
+  // テンプレ既定のデリバリー行を用意
+  const tmpl = TEMPLATES[store.business_type] || TEMPLATES.other;
+  deliveryRows = tmpl.deliveries.map(p=>({platform:p, amount:""}));
+  currentReportId = null;
+
+  const { data:rep } = await sb.from("daily_reports")
+    .select("*, report_dayparts(*), report_deliveries(*)")
+    .eq("store_id", store.id).eq("report_date", date).maybeSingle();
+
+  if(rep){
+    currentReportId = rep.id;
+    $("#discount").value = rep.discount || "";
+    $("#note").value = rep.note || "";
+    if(rep.report_deliveries && rep.report_deliveries.length){
+      deliveryRows = rep.report_deliveries.map(d=>({platform:d.platform, amount:d.amount}));
+    }
+    renderDayparts(rep.report_dayparts);
+    renderDeliveries();
+    info.innerHTML = `<span style="color:var(--ok)">● 既存の報告を読み込みました（上書き保存できます）</span>`;
+  }else{
+    $("#discount").value=""; $("#note").value="";
+    renderDayparts(null);
+    renderDeliveries();
+    info.innerHTML = `<span style="color:var(--ink-soft)">○ 新規入力（${store.business_type} テンプレート）</span>`;
+  }
+  recalc();
+}
+
+/* ---------- save ---------- */
+async function saveReport(){
+  const store = currentStore();
+  const st=$("#saveStatus"); st.className="status";
+  if(!store){ st.className="status err"; st.textContent="店舗を選択してください"; return; }
+  $("#save").disabled=true; st.textContent="保存中…";
+  try{
+    const { data:{ user } } = await sb.auth.getUser();
+    const { data:rep, error:e1 } = await sb.from("daily_reports").upsert({
+      store_id: store.id,
+      report_date: $("#date").value,
+      discount: num($("#discount").value),
+      note: $("#note").value || null,
+      created_by: user.id,
+      updated_at: new Date().toISOString()
+    }, { onConflict:"store_id,report_date" }).select("id").single();
+    if(e1) throw e1;
+    const rid = rep.id;
+
+    // 子テーブルを入れ替え
+    await sb.from("report_dayparts").delete().eq("report_id", rid);
+    await sb.from("report_deliveries").delete().eq("report_id", rid);
+
+    const dps=[];
+    $$(".dp").forEach(el=>{
+      const gi=num($(".g-in",el).value), gt=num($(".g-to",el).value);
+      const split=el.classList.contains("split");
+      const sin=num($(".s-in",el).value), sto=num($(".s-to",el).value);
+      const tot=split ? sin+sto : num($(".s-tot",el).value);
+      if(gi||gt||tot){
+        dps.push({
+          report_id:rid, daypart:el.dataset.dp,
+          dine_in_guests:Math.round(gi), to_go_guests:Math.round(gt),
+          dine_in_sales: split? sin : null,
+          to_go_sales:   split? sto : null,
+          total_sales:   tot
+        });
+      }
+    });
+    if(dps.length){ const {error}=await sb.from("report_dayparts").insert(dps); if(error) throw error; }
+
+    const dlv = deliveryRows
+      .filter(d=> d.platform && num(d.amount)!==0)
+      .map(d=>({ report_id:rid, platform:d.platform.trim(), amount:num(d.amount) }));
+    if(dlv.length){ const {error}=await sb.from("report_deliveries").insert(dlv); if(error) throw error; }
+
+    currentReportId=rid;
+    st.className="status ok"; st.textContent="保存しました ✓";
+    $("#loadInfo").innerHTML=`<span style="color:var(--ok)">● 保存済み（上書き保存できます）</span>`;
+  }catch(err){
+    st.className="status err"; st.textContent="保存に失敗: "+(err.message||err);
+  }finally{ $("#save").disabled=false; setTimeout(()=>{ if(st.classList.contains("ok")) st.textContent=""; },4000); }
+}
+
+/* ---------- summary ---------- */
+async function runSummary(){
+  const from=$("#fFrom").value, to=$("#fTo").value, storeVal=$("#fStore").value;
+  let q = sb.from("daily_reports")
+    .select("id, report_date, discount, note, store_id, stores(name,business_type), report_dayparts(dine_in_guests,to_go_guests,total_sales), report_deliveries(amount)")
+    .gte("report_date",from).lte("report_date",to)
+    .order("report_date",{ascending:false});
+  if(storeVal!=="all") q=q.eq("store_id",storeVal);
+  const { data, error } = await q;
+  const tbody=$("#rows"), empty=$("#emptyMsg");
+  tbody.innerHTML="";
+  if(error){ empty.textContent="読み込みエラー: "+error.message; return; }
+  if(!data || !data.length){ empty.textContent="該当する報告はありません。"; $("#sSales").textContent="$0"; $("#sGuests").textContent="0"; $("#sCount").textContent="0"; return; }
+  empty.textContent="";
+
+  let sumSales=0, sumGuests=0;
+  data.forEach(r=>{
+    const g  = (r.report_dayparts||[]).reduce((a,d)=>a+(d.dine_in_guests||0)+(d.to_go_guests||0),0);
+    const di = (r.report_dayparts||[]).reduce((a,d)=>a+num(d.total_sales),0);
+    const dl = (r.report_deliveries||[]).reduce((a,d)=>a+num(d.amount),0);
+    const grand = di+dl-num(r.discount);
+    sumSales+=grand; sumGuests+=g;
+    const bt=r.stores?.business_type||"other";
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${r.report_date}</td>
+      <td>${r.stores?.name||""} <span class="bt ${bt}">${bt}</span></td>
+      <td class="num">${intc(g)}</td>
+      <td class="num">${money(di)}</td>
+      <td class="num">${money(dl)}</td>
+      <td class="num">${num(r.discount)?money(num(r.discount)):"—"}</td>
+      <td class="num"><b>${money(grand)}</b></td>`;
+    tr.onclick=()=> openForEdit(r.store_id, r.report_date);
+    tbody.appendChild(tr);
+  });
+  $("#sSales").textContent  = money(sumSales);
+  $("#sGuests").innerHTML   = intc(sumGuests)+'<small> ppl</small>';
+  $("#sCount").innerHTML    = data.length+'<small> 件</small>';
+}
+function openForEdit(storeId, date){
+  switchTab("entry");
+  $("#store").value=storeId; $("#date").value=date;
+  loadExisting();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+document.addEventListener("DOMContentLoaded", start);
+</script>
+</body>
+</html>
