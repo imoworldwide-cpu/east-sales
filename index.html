@@ -179,6 +179,8 @@
   .head-logo{height:30px}
   .auth-logo{height:64px; margin:0 auto 2px}
   .ocr-filled{ background:#fff7d6 !important; box-shadow:inset 0 0 0 1px #e8cf7a !important }
+  #dBody .cell-link{ cursor:pointer }
+  #dBody .cell-link:hover{ background:var(--paper-2); outline:1px solid var(--ai); outline-offset:-1px }
   .hide{display:none !important}
   @media(max-width:560px){
     .totals{grid-template-columns:repeat(2,1fr)}
@@ -301,6 +303,18 @@
       </div>
 
       <div class="card">
+        <h2><span class="dot"></span>Lunch vs Dinner</h2>
+        <div style="display:flex; justify-content:space-between; font-size:13px; color:var(--ink-soft); margin-bottom:6px">
+          <span>Lunch &nbsp;<b id="lvLunchPct" style="color:var(--ai)">0%</b> &nbsp;<span class="num" id="lvLunch">$0</span></span>
+          <span><span class="num" id="lvDinner">$0</span>&nbsp; <b id="lvDinnerPct" style="color:var(--shu)">0%</b>&nbsp; Dinner</span>
+        </div>
+        <div style="display:flex; height:18px; border-radius:9px; overflow:hidden; border:1px solid var(--line); background:var(--paper-2)">
+          <div id="lvBarLunch" style="width:0%; background:var(--ai)"></div>
+          <div id="lvBarDinner" style="width:0%; background:var(--shu)"></div>
+        </div>
+      </div>
+
+      <div class="card">
         <h2><span class="dot"></span>Daily reports</h2>
         <p class="muted">Tap a row to open and edit it in the Report tab.</p>
         <div style="overflow-x:auto">
@@ -333,7 +347,7 @@
 
       <div class="card">
         <h2><span class="dot"></span>By store / by day</h2>
-        <p class="muted">Each cell is that store's total sales for the day. Blank = not reported.</p>
+        <p class="muted">Each cell is that store's total sales for the day. Blank = not reported. Tap a cell to view or edit that day.</p>
         <div style="overflow-x:auto">
           <table id="dTable">
             <thead><tr id="dHead"></tr></thead>
@@ -749,7 +763,7 @@ async function saveReport(){
 async function runSummary(){
   const from=$("#fFrom").value, to=$("#fTo").value, storeVal=$("#fStore").value;
   let q = sb.from("daily_reports")
-    .select("id, report_date, discount, note, store_id, stores(name,business_type), report_dayparts(dine_in_guests,to_go_guests,total_sales), report_deliveries(amount)")
+    .select("id, report_date, discount, note, store_id, stores(name,business_type), report_dayparts(daypart,dine_in_guests,to_go_guests,total_sales), report_deliveries(amount)")
     .gte("report_date",from).lte("report_date",to)
     .order("report_date",{ascending:false});
   if(storeVal!=="all") q=q.eq("store_id",storeVal);
@@ -757,14 +771,19 @@ async function runSummary(){
   const tbody=$("#rows"), empty=$("#emptyMsg");
   tbody.innerHTML="";
   if(error){ empty.textContent="Load error: "+error.message; return; }
-  if(!data || !data.length){ empty.textContent="No matching reports."; $("#sSales").textContent="$0"; $("#sGuests").textContent="0"; $("#sCount").textContent="0"; return; }
+  if(!data || !data.length){ empty.textContent="No matching reports."; $("#sSales").textContent="$0"; $("#sGuests").textContent="0"; $("#sCount").textContent="0";
+    $("#lvLunch").textContent="$0"; $("#lvDinner").textContent="$0"; $("#lvLunchPct").textContent="0%"; $("#lvDinnerPct").textContent="0%"; $("#lvBarLunch").style.width="0%"; $("#lvBarDinner").style.width="0%"; return; }
   empty.textContent="";
 
-  let sumSales=0, sumGuests=0;
+  let sumSales=0, sumGuests=0, lunchSales=0, dinnerSales=0;
   data.forEach(r=>{
     const g  = (r.report_dayparts||[]).reduce((a,d)=>a+(d.dine_in_guests||0)+(d.to_go_guests||0),0);
     const di = (r.report_dayparts||[]).reduce((a,d)=>a+num(d.total_sales),0);
     const dl = (r.report_deliveries||[]).reduce((a,d)=>a+num(d.amount),0);
+    (r.report_dayparts||[]).forEach(d=>{
+      if(d.daypart==="lunch") lunchSales+=num(d.total_sales);
+      else if(d.daypart==="dinner") dinnerSales+=num(d.total_sales);
+    });
     const grand = di-num(r.discount);   // delivery not added to total sales
     sumSales+=grand; sumGuests+=g;
     const bt=r.stores?.business_type||"other";
@@ -782,6 +801,15 @@ async function runSummary(){
   $("#sSales").textContent  = money(sumSales);
   $("#sGuests").innerHTML   = intc(sumGuests)+'<small> ppl</small>';
   $("#sCount").innerHTML    = data.length+'<small></small>';
+  // Lunch vs Dinner
+  const ld = lunchSales + dinnerSales;
+  const lp = ld>0 ? lunchSales/ld*100 : 0, dp = ld>0 ? dinnerSales/ld*100 : 0;
+  $("#lvLunch").textContent = money(lunchSales);
+  $("#lvDinner").textContent = money(dinnerSales);
+  $("#lvLunchPct").textContent = lp.toFixed(1)+"%";
+  $("#lvDinnerPct").textContent = dp.toFixed(1)+"%";
+  $("#lvBarLunch").style.width = lp+"%";
+  $("#lvBarDinner").style.width = dp+"%";
 }
 function openForEdit(storeId, date){
   switchTab("entry");
@@ -847,13 +875,16 @@ async function runDashboard(){
     let rowTotal=0, cells="";
     dates.forEach(d=>{
       const c = row && row[d];
-      if(c){ rowTotal+=c.grand; cells+=`<td class="num">${money(c.grand)}</td>`; }
-      else { cells+=`<td class="num" style="color:var(--line)">—</td>`; }
+      if(c){ rowTotal+=c.grand; cells+=`<td class="num cell-link" data-sid="${sid}" data-date="${d}">${money(c.grand)}</td>`; }
+      else { cells+=`<td class="num cell-link" data-sid="${sid}" data-date="${d}" style="color:var(--line)">—</td>`; }
     });
     if(rowTotal>0) anyRow=true;
     const tr=document.createElement("tr");
     tr.innerHTML=`<td style="text-align:left">${name} <span class="bt ${bt}">${bt}</span></td>${cells}<td class="num"><b>${money(rowTotal)}</b></td>`;
     body.appendChild(tr);
+  });
+  body.querySelectorAll(".cell-link").forEach(td=>{
+    td.onclick=()=> openForEdit(td.dataset.sid, td.dataset.date);
   });
 
   // footer (day totals + week total)
