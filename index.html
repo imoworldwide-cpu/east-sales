@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<title>Azuma NY — Sales Report</title>
+<title>East Restaurant Group — Daily Sales</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -195,7 +195,7 @@
   <div class="auth">
     <div class="logo">
       <img class="logo-img auth-logo" alt="east">
-      <small>AZUMA NY &middot; Daily Sales Report</small>
+      <small>East Restaurant Group &middot; Daily Sales</small>
     </div>
     <div class="card">
       <div class="field"><label>Email</label><input id="email" type="email" autocomplete="email" placeholder="you@azuma-ny.com"></div>
@@ -217,7 +217,7 @@
     <div class="top-in">
       <div class="brand">
         <img class="logo-img head-logo" alt="east">
-        <small>Sales Report</small>
+        <small>East Restaurant Group</small>
       </div>
       <div class="who">
         <span id="whoEmail"></span>
@@ -273,9 +273,10 @@
         <div class="totals">
           <div class="t"><div class="k">Guests</div><div class="v num"><span id="tGuests">0</span> <small style="font-size:12px;color:var(--ink-soft)">ppl</small></div></div>
           <div class="t"><div class="k">Dine-in/To-go sales</div><div class="v num" id="tDinein">$0.00</div></div>
-          <div class="t"><div class="k">Delivery</div><div class="v num" id="tDelivery">$0.00</div></div>
+          <div class="t"><div class="k">Delivery (info)</div><div class="v num" id="tDelivery">$0.00</div></div>
           <div class="t grand"><div class="k">Total sales</div><div class="v num" id="tGrand">$0.00</div></div>
         </div>
+        <div class="muted" style="margin-top:8px; font-size:12px">Delivery is shown for comparison only and is <b>not</b> included in Total sales.</div>
         <button id="save" class="save">Save</button>
         <div id="saveStatus" class="status"></div>
       </div>
@@ -650,7 +651,7 @@ function recalc(){
   });
   let delivery=0; deliveryRows.forEach(d=> delivery+=num(d.amount));
   const discount = num($("#discount").value);
-  const grand = dinein + delivery - discount;
+  const grand = dinein - discount;   // delivery shown separately, not added to total sales
   $("#tGuests").textContent  = intc(guests);
   $("#tDinein").textContent  = money(dinein);
   $("#tDelivery").textContent= money(delivery);
@@ -764,7 +765,7 @@ async function runSummary(){
     const g  = (r.report_dayparts||[]).reduce((a,d)=>a+(d.dine_in_guests||0)+(d.to_go_guests||0),0);
     const di = (r.report_dayparts||[]).reduce((a,d)=>a+num(d.total_sales),0);
     const dl = (r.report_deliveries||[]).reduce((a,d)=>a+num(d.amount),0);
-    const grand = di+dl-num(r.discount);
+    const grand = di-num(r.discount);   // delivery not added to total sales
     sumSales+=grand; sumGuests+=g;
     const bt=r.stores?.business_type||"other";
     const tr=document.createElement("tr");
@@ -794,7 +795,7 @@ const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 function reportGrand(r){
   const di=(r.report_dayparts||[]).reduce((a,d)=>a+num(d.total_sales),0);
   const dl=(r.report_deliveries||[]).reduce((a,d)=>a+num(d.amount),0);
-  return di+dl-num(r.discount);
+  return di-num(r.discount);   // delivery not added to total sales
 }
 function reportGuests(r){
   return (r.report_dayparts||[]).reduce((a,d)=>a+(d.dine_in_guests||0)+(d.to_go_guests||0),0);
