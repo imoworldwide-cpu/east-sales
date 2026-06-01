@@ -178,6 +178,7 @@
   .logo-img{display:block; height:auto; image-rendering:auto}
   .head-logo{height:30px}
   .auth-logo{height:64px; margin:0 auto 2px}
+  .ocr-filled{ background:#fff7d6 !important; box-shadow:inset 0 0 0 1px #e8cf7a !important }
   .hide{display:none !important}
   @media(max-width:560px){
     .totals{grid-template-columns:repeat(2,1fr)}
@@ -241,6 +242,12 @@
           <div class="field"><label>日付</label><input id="date" type="date"></div>
         </div>
         <div id="loadInfo" class="muted" style="margin-top:8px"></div>
+        <div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--line-soft)">
+          <button id="ocrBtn" class="addbtn" style="border-style:solid; color:var(--ai)">写真から読み取り（β）</button>
+          <input id="ocrFile" type="file" accept="image/*" capture="environment" class="hide">
+          <span id="ocrStatus" class="muted" style="margin-left:8px"></span>
+          <div class="muted" style="margin-top:6px; font-size:12px">スプレッドシート画面を真上から撮ると精度が上がります。読み取った値は<b style="color:#8a6d1a">黄色</b>で入ります。必ず確認・修正してから保存してください。</div>
+        </div>
       </div>
 
       <div class="card">
@@ -479,6 +486,8 @@ function bindAppUI(){
   $("#discount").oninput = recalc;
   $("#save").onclick = saveReport;
   $("#fRun").onclick = runSummary;
+  $("#ocrBtn").onclick = ()=> $("#ocrFile").click();
+  $("#ocrFile").onchange = handleOcrFile;
 }
 function switchTab(name){
   $$(".tab").forEach(t=> t.classList.toggle("active", t.dataset.tab===name));
@@ -541,8 +550,9 @@ function renderDeliveries(){
       <div class="field" style="flex:0 1 160px"><label>${i===0?"金額":""}</label><input class="d-amt" type="number" inputmode="decimal" step="0.01" placeholder="0.00" value="${d.amount||""}"></div>
       <button class="iconbtn" title="削除">×</button>`;
     $(".d-name",el).oninput = e=> deliveryRows[i].platform=e.target.value;
-    $(".d-amt",el).oninput  = e=>{ deliveryRows[i].amount=e.target.value; recalc(); };
+    $(".d-amt",el).oninput  = e=>{ deliveryRows[i].amount=e.target.value; e.target.classList.remove("ocr-filled"); recalc(); };
     $(".iconbtn",el).onclick= ()=>{ deliveryRows.splice(i,1); renderDeliveries(); recalc(); };
+    if(d._ocr) $(".d-amt",el).classList.add("ocr-filled");
     box.appendChild(el);
   });
 }
@@ -699,6 +709,112 @@ function openForEdit(storeId, date){
   $("#store").value=storeId; $("#date").value=date;
   loadExisting();
   window.scrollTo({top:0,behavior:"smooth"});
+}
+
+/* ===================================================================== */
+/*  写真から読み取り (OCR)  — 印刷の表(Ramen レイアウト)向け。要確認の下書き。  */
+/* ===================================================================== */
+let tesseractLoading=null;
+function ensureTesseract(){
+  if(window.Tesseract) return Promise.resolve();
+  if(tesseractLoading) return tesseractLoading;
+  tesseractLoading = new Promise((resolve,reject)=>{
+    const s=document.createElement("script");
+    s.src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+    s.onload=resolve; s.onerror=()=>reject(new Error("OCRライブラリの読み込みに失敗しました"));
+    document.head.appendChild(s);
+  });
+  return tesseractLoading;
+}
+
+async function handleOcrFile(e){
+  const file = e.target.files && e.target.files[0];
+  e.target.value=""; // 同じ写真を続けて選べるように
+  if(!file) return;
+  const st=$("#ocrStatus");
+  st.style.color="var(--ink-soft)"; st.textContent="読み込み中…（初回は数秒かかります）";
+  try{
+    await ensureTesseract();
+    st.textContent="解析中…";
+    const worker = await Tesseract.createWorker("eng");
+    const { data } = await worker.recognize(file);
+    await worker.terminate();
+    const parsed = parseRamenOCR(data.text || "");
+    const filled = applyOcr(parsed);
+    if(filled>0){
+      st.style.color="var(--ok)";
+      st.textContent="読み取りました。黄色い欄を確認・修正して保存してください。";
+    }else{
+      st.style.color="var(--shu)";
+      st.textContent="数字をうまく読み取れませんでした。手入力するか、撮り直してください。";
+    }
+  }catch(err){
+    st.style.color="var(--shu)";
+    st.textContent="読み取りに失敗しました："+(err.message||err);
+  }
+}
+
+/* OCRテキストから Ramen レイアウトの値を推定 */
+function parseRamenOCR(raw){
+  let t = raw.replace(/(\d),(?=\d{3}(\D|$))/g,"$1");      // 1,519.10 -> 1519.10
+  const lines = t.split(/\n+/).map(l=>l.trim()).filter(Boolean);
+  const numsOf = s => (s.match(/\d+(?:\.\d+)?/g)||[]).map(Number);
+  const res = { lunch:{}, dinner:{}, uber:null, doordash:null };
+  let cur=null;
+  for(const line of lines){
+    const low=line.toLowerCase(), n=numsOf(line);
+    if(/\blunch\b/.test(low)){ cur="lunch"; assignTotal(res.lunch,n); continue; }
+    if(/\bdinner\b/.test(low)){ cur="dinner"; assignTotal(res.dinner,n); continue; }
+    if(/dine|here|to\s*go|togo/.test(low)){
+      if(cur){
+        const hasDine = /dine|here/.test(low);
+        if(hasDine && n.length) res[cur].dine_in = Math.round(n[0]);
+        const m = low.match(/(?:to\s*go|togo)\D*(\d+)/);   // 「To go」の後ろの数字
+        if(m) res[cur].to_go = parseInt(m[1],10);
+        else if(!hasDine && n.length) res[cur].to_go = Math.round(n[0]);
+      }
+      continue;
+    }
+    if(/uber/.test(low)){ if(n.length) res.uber=pickMoney(n); continue; }
+    if(/door\s*dash/.test(low)){ if(n.length) res.doordash=pickMoney(n); continue; }
+  }
+  return res;
+}
+function assignTotal(obj, n){
+  if(!n.length) return;
+  const dec = n.filter(x=> !Number.isInteger(x));
+  obj.sales = dec.length ? Math.max(...dec) : (n.length>1 ? Math.max(...n) : null);
+  const ints = n.filter(x=> Number.isInteger(x) && x>0 && x<3000 && x!==obj.sales);
+  if(ints.length) obj.guests = Math.min(...ints);
+}
+function pickMoney(n){ const d=n.filter(x=>!Number.isInteger(x)); return d.length?Math.max(...d):Math.max(...n); }
+
+function setOcr(input, val){
+  if(input==null) return;
+  input.value = val;
+  input.classList.add("ocr-filled");
+  input.addEventListener("input", ()=> input.classList.remove("ocr-filled"), { once:true });
+}
+function applyOcr(res){
+  let filled=0;
+  $$(".dp").forEach(el=>{
+    const r = res[el.dataset.dp]; if(!r) return;
+    if(r.dine_in!=null){ setOcr($(".g-in",el), r.dine_in); filled++; }
+    if(r.to_go!=null){ setOcr($(".g-to",el), r.to_go); filled++; }
+    if(r.dine_in==null && r.guests!=null){ setOcr($(".g-in",el), r.guests); filled++; }
+    if(r.sales!=null){ setOcr($(".s-tot",el), Number(r.sales).toFixed(2)); filled++; }
+  });
+  if(res.uber!=null){ setDeliveryOcr(/uber/i,"Uber Eats",res.uber); filled++; }
+  if(res.doordash!=null){ setDeliveryOcr(/door\s*dash/i,"DoorDash",res.doordash); filled++; }
+  renderDeliveries();
+  recalc();
+  return filled;
+}
+function setDeliveryOcr(re, defName, amount){
+  let row = deliveryRows.find(d=> re.test(d.platform||""));
+  if(!row) row = deliveryRows.find(d=> !(d.platform||"").trim());
+  if(row){ row.amount=Number(amount).toFixed(2); row._ocr=true; }
+  else deliveryRows.push({ platform:defName, amount:Number(amount).toFixed(2), _ocr:true });
 }
 
 document.addEventListener("DOMContentLoaded", start);
