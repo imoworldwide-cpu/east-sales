@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<title>Azuma NY — 売上報告</title>
+<title>Azuma NY — Sales Report</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,15 +15,15 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-  /* ============ 1. 設定: ここをご自身の Supabase の値に差し替えてください ============ */
-  /* （値は index.html 末尾の <script> 内 CONFIG にあります） */
+  /* ============ 1. Settings: replace with your own Supabase values ============ */
+  /* (values live in CONFIG inside the <script> at the bottom of index.html) */
 
   :root{
     --paper:#f4efe6; --paper-2:#efe8db; --ink:#1c1a17; --ink-soft:#5b554c;
     --line:#d8cfbe; --line-soft:#e4dccd;
-    --ai:#1f3a5f;            /* 藍 indigo */
+    --ai:#1f3a5f;            /* indigo */
     --ai-deep:#162a45;
-    --shu:#c0392b;           /* 朱 vermilion */
+    --shu:#c0392b;           /* vermilion */
     --shu-soft:#e9c8c2;
     --gold:#b08a3e;
     --ok:#3a6b4f;
@@ -198,16 +198,16 @@
       <small>AZUMA NY &middot; Daily Sales Report</small>
     </div>
     <div class="card">
-      <div class="field"><label>メールアドレス</label><input id="email" type="email" autocomplete="email" placeholder="you@azuma-ny.com"></div>
-      <div class="field" style="margin-top:12px"><label>パスワード</label><input id="password" type="password" autocomplete="current-password" placeholder="••••••••"></div>
-      <button id="authBtn" class="save">ログイン</button>
+      <div class="field"><label>Email</label><input id="email" type="email" autocomplete="email" placeholder="you@azuma-ny.com"></div>
+      <div class="field" style="margin-top:12px"><label>Password</label><input id="password" type="password" autocomplete="current-password" placeholder="••••••••"></div>
+      <button id="authBtn" class="save">Log in</button>
       <div id="authStatus" class="status"></div>
       <div class="toggle">
-        <span id="toggleText">アカウントをお持ちでない方は</span>
-        <button id="toggleMode">新規登録</button>
+        <span id="toggleText">Don't have an account?</span>
+        <button id="toggleMode">Sign up</button>
       </div>
     </div>
-    <p class="muted" style="text-align:center; margin-top:10px">登録後、本部が店舗と権限を割り当てます。</p>
+    <p class="muted" style="text-align:center; margin-top:10px">After you sign up, HQ assigns your store and role.</p>
   </div>
 </div>
 
@@ -222,59 +222,61 @@
       <div class="who">
         <span id="whoEmail"></span>
         <span id="whoBadge" class="badge"></span>
-        <button id="signout" class="lnk">ログアウト</button>
+        <button id="signout" class="lnk">Log out</button>
       </div>
     </div>
   </header>
 
   <div class="wrap">
     <div class="tabs">
-      <button class="tab active" data-tab="entry">報告入力</button>
-      <button class="tab" data-tab="summary">一覧・集計</button>
+      <button class="tab active" data-tab="entry">Report</button>
+      <button class="tab" data-tab="dash">Dashboard</button>
+      <button class="tab" data-tab="summary">Summary</button>
+      <button class="tab" data-tab="tip">Tips</button>
     </div>
 
     <!-- ---------- ENTRY ---------- -->
     <section id="tab-entry">
       <div class="card">
-        <h2><span class="dot"></span>日報入力</h2>
+        <h2><span class="dot"></span>Daily Report</h2>
         <div class="row" style="margin-top:10px">
-          <div class="field"><label>店舗</label><select id="store"></select></div>
-          <div class="field"><label>日付</label><input id="date" type="date"></div>
+          <div class="field"><label>Store</label><select id="store"></select></div>
+          <div class="field"><label>Date</label><input id="date" type="date"></div>
         </div>
         <div id="loadInfo" class="muted" style="margin-top:8px"></div>
         <div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--line-soft)">
-          <button id="ocrBtn" class="addbtn" style="border-style:solid; color:var(--ai)">写真から読み取り（β）</button>
+          <button id="ocrBtn" class="addbtn" style="border-style:solid; color:var(--ai)">Scan from photo (beta)</button>
           <input id="ocrFile" type="file" accept="image/*" capture="environment" class="hide">
           <span id="ocrStatus" class="muted" style="margin-left:8px"></span>
-          <div class="muted" style="margin-top:6px; font-size:12px">スプレッドシート画面を真上から撮ると精度が上がります。読み取った値は<b style="color:#8a6d1a">黄色</b>で入ります。必ず確認・修正してから保存してください。</div>
+          <div class="muted" style="margin-top:6px; font-size:12px">Photographing the spreadsheet straight-on improves accuracy. Scanned values appear in <b style="color:#8a6d1a">yellow</b>. Always review and correct them before saving.</div>
         </div>
       </div>
 
       <div class="card">
-        <h2><span class="dot"></span>時間帯別</h2>
-        <p class="muted">来客数（店内 / 持ち帰り）と売上を入力。売上を店内・持ち帰りで分けたい場合は各カードの「内訳で入力」をオンに。</p>
+        <h2><span class="dot"></span>By daypart</h2>
+        <p class="muted">Enter guest counts (dine-in / to-go) and sales. To split sales into dine-in and to-go, turn on “Enter breakdown” on each card.</p>
         <div id="dayparts"></div>
       </div>
 
       <div class="card">
-        <h2><span class="dot"></span>デリバリー・その他</h2>
+        <h2><span class="dot"></span>Delivery & other</h2>
         <div id="deliveries"></div>
-        <button id="addDlv" class="addbtn">＋ 行を追加</button>
+        <button id="addDlv" class="addbtn">+ Add row</button>
         <div class="row" style="margin-top:14px">
-          <div class="field"><label>割引 (Discount)</label><input id="discount" type="number" inputmode="decimal" step="0.01" placeholder="0.00"></div>
-          <div class="field" style="flex:2 1 320px"><label>メモ</label><textarea id="note" placeholder="天候・特記事項など"></textarea></div>
+          <div class="field"><label>Discount</label><input id="discount" type="number" inputmode="decimal" step="0.01" placeholder="0.00"></div>
+          <div class="field" style="flex:2 1 320px"><label>Note</label><textarea id="note" placeholder="Weather, notes, etc."></textarea></div>
         </div>
       </div>
 
       <div class="card">
-        <h2><span class="dot"></span>本日の合計</h2>
+        <h2><span class="dot"></span>Daily total</h2>
         <div class="totals">
-          <div class="t"><div class="k">来客数</div><div class="v num"><span id="tGuests">0</span> <small style="font-size:12px;color:var(--ink-soft)">ppl</small></div></div>
-          <div class="t"><div class="k">店内/持帰 売上</div><div class="v num" id="tDinein">$0.00</div></div>
-          <div class="t"><div class="k">デリバリー</div><div class="v num" id="tDelivery">$0.00</div></div>
-          <div class="t grand"><div class="k">総売上</div><div class="v num" id="tGrand">$0.00</div></div>
+          <div class="t"><div class="k">Guests</div><div class="v num"><span id="tGuests">0</span> <small style="font-size:12px;color:var(--ink-soft)">ppl</small></div></div>
+          <div class="t"><div class="k">Dine-in/To-go sales</div><div class="v num" id="tDinein">$0.00</div></div>
+          <div class="t"><div class="k">Delivery</div><div class="v num" id="tDelivery">$0.00</div></div>
+          <div class="t grand"><div class="k">Total sales</div><div class="v num" id="tGrand">$0.00</div></div>
         </div>
-        <button id="save" class="save">保存する</button>
+        <button id="save" class="save">Save</button>
         <div id="saveStatus" class="status"></div>
       </div>
     </section>
@@ -282,31 +284,98 @@
     <!-- ---------- SUMMARY ---------- -->
     <section id="tab-summary" class="hide">
       <div class="card">
-        <h2><span class="dot"></span>集計条件</h2>
+        <h2><span class="dot"></span>Filters</h2>
         <div class="row" style="margin-top:10px">
-          <div class="field"><label>店舗</label><select id="fStore"></select></div>
-          <div class="field"><label>開始日</label><input id="fFrom" type="date"></div>
-          <div class="field"><label>終了日</label><input id="fTo" type="date"></div>
-          <div class="field" style="flex:0 0 auto; display:flex; align-items:flex-end"><button id="fRun" class="addbtn" style="border-style:solid; background:var(--ai); color:#fff">表示</button></div>
+          <div class="field"><label>Store</label><select id="fStore"></select></div>
+          <div class="field"><label>From</label><input id="fFrom" type="date"></div>
+          <div class="field"><label>To</label><input id="fTo" type="date"></div>
+          <div class="field" style="flex:0 0 auto; display:flex; align-items:flex-end"><button id="fRun" class="addbtn" style="border-style:solid; background:var(--ai); color:#fff">Show</button></div>
         </div>
       </div>
 
       <div class="sumgrid">
-        <div class="sumcard"><div class="k">期間 総売上</div><div class="v num" id="sSales">$0</div></div>
-        <div class="sumcard"><div class="k">来客数</div><div class="v num" id="sGuests">0<small> ppl</small></div></div>
-        <div class="sumcard"><div class="k">報告件数</div><div class="v num" id="sCount">0<small> 件</small></div></div>
+        <div class="sumcard"><div class="k">Period total</div><div class="v num" id="sSales">$0</div></div>
+        <div class="sumcard"><div class="k">Guests</div><div class="v num" id="sGuests">0<small> ppl</small></div></div>
+        <div class="sumcard"><div class="k">Reports</div><div class="v num" id="sCount">0<small></small></div></div>
       </div>
 
       <div class="card">
-        <h2><span class="dot"></span>日報一覧</h2>
-        <p class="muted">行をタップすると「報告入力」で開いて編集できます。</p>
+        <h2><span class="dot"></span>Daily reports</h2>
+        <p class="muted">Tap a row to open and edit it in the Report tab.</p>
         <div style="overflow-x:auto">
           <table>
-            <thead><tr><th>日付</th><th>店舗</th><th>来客</th><th>店内/持帰</th><th>ﾃﾞﾘﾊﾞﾘｰ</th><th>割引</th><th>総売上</th></tr></thead>
+            <thead><tr><th>Date</th><th>Store</th><th>Guests</th><th>Dine-in/To-go</th><th>Delivery</th><th>Discount</th><th>Total</th></tr></thead>
             <tbody id="rows"></tbody>
           </table>
         </div>
         <div id="emptyMsg" class="muted" style="text-align:center; padding:18px"></div>
+      </div>
+    </section>
+
+    <!-- ---------- DASHBOARD (weekly, all stores) ---------- -->
+    <section id="tab-dash" class="hide">
+      <div class="card">
+        <h2><span class="dot"></span>Weekly dashboard</h2>
+        <div class="row" style="margin-top:10px; align-items:flex-end">
+          <div class="field" style="flex:0 0 auto"><button id="dPrev" class="iconbtn" title="Previous week">‹</button></div>
+          <div class="field"><label>Week ending</label><input id="dEnd" type="date"></div>
+          <div class="field" style="flex:0 0 auto"><button id="dNext" class="iconbtn" title="Next week">›</button></div>
+          <div id="dRange" class="muted" style="flex:1 1 auto; display:flex; align-items:flex-end; padding-bottom:10px"></div>
+        </div>
+      </div>
+
+      <div class="sumgrid">
+        <div class="sumcard"><div class="k">Week total (all stores)</div><div class="v num" id="dSales">$0</div></div>
+        <div class="sumcard"><div class="k">Week guests</div><div class="v num" id="dGuests">0<small> ppl</small></div></div>
+        <div class="sumcard"><div class="k">Daily average</div><div class="v num" id="dAvg">$0</div></div>
+      </div>
+
+      <div class="card">
+        <h2><span class="dot"></span>By store / by day</h2>
+        <p class="muted">Each cell is that store's total sales for the day. Blank = not reported.</p>
+        <div style="overflow-x:auto">
+          <table id="dTable">
+            <thead><tr id="dHead"></tr></thead>
+            <tbody id="dBody"></tbody>
+            <tfoot><tr id="dFoot"></tr></tfoot>
+          </table>
+        </div>
+        <div id="dEmpty" class="muted" style="text-align:center; padding:18px"></div>
+      </div>
+    </section>
+
+    <!-- ---------- TIPS (by hours worked) ---------- -->
+    <section id="tab-tip" class="hide">
+      <div class="card">
+        <h2><span class="dot"></span>Tip distribution (by hours worked)</h2>
+        <div class="row" style="margin-top:10px">
+          <div class="field"><label>Store</label><select id="tipStore"></select></div>
+          <div class="field"><label>Date</label><input id="tipDate" type="date"></div>
+          <div class="field"><label>Total tips</label><input id="tipTotal" type="number" inputmode="decimal" step="0.01" placeholder="0.00"></div>
+        </div>
+        <p class="muted" style="margin-top:8px">Distributed by hours worked (each share = total × that person's hours ÷ everyone's total hours). This screen only calculates; it does not save.</p>
+      </div>
+
+      <div class="card">
+        <h2><span class="dot"></span>Staff & hours</h2>
+        <div id="tipStaff"></div>
+        <button id="tipAdd" class="addbtn">+ Add staff</button>
+      </div>
+
+      <div class="card">
+        <h2><span class="dot"></span>Distribution</h2>
+        <div class="totals" style="grid-template-columns:repeat(3,1fr)">
+          <div class="t"><div class="k">Total hours</div><div class="v num" id="tipHours">0<small style="font-size:12px;color:var(--ink-soft)"> h</small></div></div>
+          <div class="t"><div class="k">Per hour</div><div class="v num" id="tipRate">$0.00</div></div>
+          <div class="t grand"><div class="k">Distributed total</div><div class="v num" id="tipDist">$0.00</div></div>
+        </div>
+        <div style="overflow-x:auto; margin-top:12px">
+          <table>
+            <thead><tr><th>Staff</th><th>Hours</th><th>Share %</th><th>Share</th></tr></thead>
+            <tbody id="tipResult"></tbody>
+          </table>
+        </div>
+        <div id="tipMsg" class="muted" style="text-align:center; padding:14px"></div>
       </div>
     </section>
   </div>
@@ -314,23 +383,22 @@
 
 <div id="configWarn" class="hide" style="max-width:620px;margin:60px auto;padding:0 20px">
   <div class="hint" style="font-size:14px">
-    <b>設定が未入力です。</b> このファイル末尾の <code>CONFIG</code> にある
-    <code>SUPABASE_URL</code> と <code>SUPABASE_ANON_KEY</code> を、ご自身の Supabase プロジェクトの値に差し替えてください。
-    （Supabase ダッシュボード → Project Settings → API）
+    <b>Settings are not filled in.</b> In the <code>CONFIG</code> block near the bottom of this file, replace <code>SUPABASE_URL</code> and <code>SUPABASE_ANON_KEY</code> with your own Supabase project values.
+    (Supabase dashboard -> Project Settings -> API)
   </div>
 </div>
 
 <script>
 /* =====================================================================
-   CONFIG  ★ ここを差し替えてください ★
-   Supabase ダッシュボード → Project Settings → API からコピー
+   CONFIG  ★ Replace these ★
+   Copy from Supabase dashboard -> Project Settings -> API
 ===================================================================== */
 const CONFIG = {
   SUPABASE_URL:      "https://yxdwxedqiqhahvmoayst.supabase.co",
   SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl4ZHd4ZWRxaXFoYWh2bW9heXN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMjY1MDIsImV4cCI6MjA5NTkwMjUwMn0.v5_sg6W4H9R6IXq8O7-fkwFxg3H6kBKQvySrN9RH5mU"
 };
 
-/* ---------- 業態ごとの初期テンプレート ---------- */
+/* ---------- Default template per business type ---------- */
 const LOGO = "data:image/png;base64,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";
 
 const TEMPLATES = {
@@ -339,7 +407,7 @@ const TEMPLATES = {
   sushi: { dayparts:["lunch","dinner"],             split:false, deliveries:["Uber Eats","DoorDash"] },
   other: { dayparts:["lunch","dinner"],             split:false, deliveries:["Uber Eats"] }
 };
-const DP_LABEL = { breakfast:"朝 Breakfast", lunch:"昼 Lunch", dinner:"夜 Dinner" };
+const DP_LABEL = { breakfast:"Breakfast", lunch:"Lunch", dinner:"Dinner" };
 
 /* ---------- helpers ---------- */
 const $  = (s,el=document)=>el.querySelector(s);
@@ -352,14 +420,14 @@ const firstOfMonth = () => { const d=new Date(); return new Date(d.getFullYear()
 
 let sb, me={ profile:null, stores:[] }, currentReportId=null, deliveryRows=[], entering=false;
 
-/* 指定ミリ秒で返ってこなければ中断（固まり防止） */
+/* Abort if it doesn't return within the given ms (prevents freezing) */
 function withTimeout(promise, ms, label){
   return Promise.race([
     promise,
     new Promise((_,rej)=> setTimeout(()=> rej(new Error("TIMEOUT:"+(label||""))), ms))
   ]);
 }
-/* このサイトの壊れたログイン情報だけを消す（データは消えません） */
+/* Clear only this site's broken login data (your data is not deleted) */
 function clearSupabaseSession(){
   try{
     Object.keys(localStorage)
@@ -392,9 +460,9 @@ function showAuth(){ entering=false; $("#auth").classList.remove("hide"); $("#ap
 function bindAuthUI(){
   $("#toggleMode").onclick = ()=>{
     authMode = authMode==="signin" ? "signup" : "signin";
-    $("#authBtn").textContent = authMode==="signin" ? "ログイン" : "新規登録";
-    $("#toggleText").textContent = authMode==="signin" ? "アカウントをお持ちでない方は" : "すでにアカウントをお持ちの方は";
-    $("#toggleMode").textContent = authMode==="signin" ? "新規登録" : "ログイン";
+    $("#authBtn").textContent = authMode==="signin" ? "Log in" : "Sign up";
+    $("#toggleText").textContent = authMode==="signin" ? "Don't have an account?" : "Already have an account?";
+    $("#toggleMode").textContent = authMode==="signin" ? "Sign up" : "Log in";
     $("#authStatus").textContent="";
   };
   $("#authBtn").onclick = doAuth;
@@ -402,8 +470,8 @@ function bindAuthUI(){
 }
 async function doAuth(){
   const email=$("#email").value.trim(), password=$("#password").value;
-  const st=$("#authStatus"); st.className="status"; st.textContent="処理中…";
-  if(!email||!password){ st.className="status err"; st.textContent="メールとパスワードを入力してください"; return; }
+  const st=$("#authStatus"); st.className="status"; st.textContent="Working...";
+  if(!email||!password){ st.className="status err"; st.textContent="Please enter your email and password"; return; }
   try{
     if(authMode==="signin"){
       const {error}=await sb.auth.signInWithPassword({email,password});
@@ -411,25 +479,25 @@ async function doAuth(){
     }else{
       const {error}=await sb.auth.signUp({email,password});
       if(error) throw error;
-      st.className="status ok"; st.textContent="登録しました。確認メールが必要な場合はメールをご確認ください。";
+      st.className="status ok"; st.textContent="Signed up. If confirmation is required, please check your email.";
     }
   }catch(err){ st.className="status err"; st.textContent=translateAuthError(err.message); }
 }
 function translateAuthError(m){
-  if(/Invalid login/i.test(m)) return "メールまたはパスワードが正しくありません";
-  if(/already registered/i.test(m)) return "このメールは既に登録済みです";
-  if(/at least 6/i.test(m)) return "パスワードは6文字以上にしてください";
+  if(/Invalid login/i.test(m)) return "Incorrect email or password";
+  if(/already registered/i.test(m)) return "This email is already registered";
+  if(/at least 6/i.test(m)) return "Password must be at least 6 characters";
   return m;
 }
 
 /* ---------------- APP ---------------- */
 async function enterApp(session){
   $("#auth").classList.add("hide"); $("#app").classList.remove("hide");
-  bindAppUI();                          // ★ まずボタンを有効化（読み込みが詰まっても操作できる）
+  bindAppUI();                          // Enable buttons first (UI stays usable even if loading stalls)
   $("#date").value  = todayISO();
   $("#fFrom").value = firstOfMonth();
   $("#fTo").value   = todayISO();
-  if(entering) return;                  // 二重読み込み防止
+  if(entering) return;                  // prevent double load
   entering = true;
   try{
     let user = session && session.user;
@@ -443,7 +511,7 @@ async function enterApp(session){
     me.profile = profile || { role:"staff", store_id:null, email:user.email };
     $("#whoEmail").textContent = me.profile.email || user.email;
     const isHQ = me.profile.role==="hq";
-    $("#whoBadge").textContent = isHQ ? "本部 HQ" : "店舗";
+    $("#whoBadge").textContent = isHQ ? "HQ" : "Store";
     $("#whoBadge").className = "badge "+(isHQ?"hq":"staff");
 
     const sres = await withTimeout(sb.from("stores").select("*").eq("active",true).order("sort_order"), 8000, "stores");
@@ -460,16 +528,16 @@ async function enterApp(session){
 function showLoadError(){
   const info = $("#loadInfo");
   if(!info) return;
-  info.innerHTML = '<span style="color:var(--shu)">● データの読み込みに時間がかかっています。</span> '
-    + '<button id="recoverBtn" class="lnk" style="color:var(--ai)">ログインし直す</button>'
-    + ' ・ <button id="reloadBtn" class="lnk" style="color:var(--ai)">再読み込み</button>';
+  info.innerHTML = '<span style="color:var(--shu)">● Loading is taking a while.</span> '
+    + '<button id="recoverBtn" class="lnk" style="color:var(--ai)">Log in again</button>'
+    + ' · <button id="reloadBtn" class="lnk" style="color:var(--ai)">Reload</button>';
   const rb=$("#recoverBtn"), rl=$("#reloadBtn");
   if(rb) rb.onclick = ()=>{ clearSupabaseSession(); location.reload(); };
   if(rl) rl.onclick = ()=> location.reload();
 }
 function buildStoreSelect(sel, withAll){
   sel.innerHTML="";
-  if(withAll){ const o=document.createElement("option"); o.value="all"; o.textContent="全店"; sel.appendChild(o); }
+  if(withAll){ const o=document.createElement("option"); o.value="all"; o.textContent="All stores"; sel.appendChild(o); }
   me.stores.forEach(s=>{
     const o=document.createElement("option"); o.value=s.id;
     o.textContent=s.name; o.dataset.type=s.business_type; sel.appendChild(o);
@@ -488,12 +556,22 @@ function bindAppUI(){
   $("#fRun").onclick = runSummary;
   $("#ocrBtn").onclick = ()=> $("#ocrFile").click();
   $("#ocrFile").onchange = handleOcrFile;
+  if(!$("#dEnd").value) $("#dEnd").value = todayISO();
+  $("#dEnd").onchange = runDashboard;
+  $("#dPrev").onclick = ()=> shiftDashWeek(-7);
+  $("#dNext").onclick = ()=> shiftDashWeek(7);
+  $("#tipAdd").onclick = ()=>{ tipStaff.push({name:"",hours:""}); renderTipStaff(); };
+  $("#tipTotal").oninput = recalcTips;
 }
 function switchTab(name){
   $$(".tab").forEach(t=> t.classList.toggle("active", t.dataset.tab===name));
   $("#tab-entry").classList.toggle("hide", name!=="entry");
   $("#tab-summary").classList.toggle("hide", name!=="summary");
+  $("#tab-dash").classList.toggle("hide", name!=="dash");
+  $("#tab-tip").classList.toggle("hide", name!=="tip");
   if(name==="summary") runSummary();
+  if(name==="dash") runDashboard();
+  if(name==="tip") runTip();
 }
 
 /* ---------- daypart rendering ---------- */
@@ -501,7 +579,7 @@ function renderDayparts(existing){
   const store = currentStore(); if(!store) return;
   const tmpl = TEMPLATES[store.business_type] || TEMPLATES.other;
   const box = $("#dayparts"); box.innerHTML="";
-  // 全時間帯を表示。テンプレートに無いものは初期 off。
+  // Show all dayparts; those not in the template start off
   ["breakfast","lunch","dinner"].forEach(dp=>{
     const inTmpl = tmpl.dayparts.includes(dp);
     const ex = existing && existing.find(d=>d.daypart===dp);
@@ -513,18 +591,18 @@ function renderDayparts(existing){
     el.innerHTML = `
       <div class="dp-head">
         <span class="name mincho">${DP_LABEL[dp]}</span>
-        <label class="switch"><input type="checkbox" class="splitChk" ${splitOn?"checked":""}> 内訳で入力</label>
+        <label class="switch"><input type="checkbox" class="splitChk" ${splitOn?"checked":""}> Enter breakdown</label>
       </div>
       <div class="row">
-        <div class="field"><label>店内 来客 (Dine-in)</label><input class="g-in" type="number" inputmode="numeric" placeholder="0"></div>
-        <div class="field"><label>持帰 来客 (To go)</label><input class="g-to" type="number" inputmode="numeric" placeholder="0"></div>
+        <div class="field"><label>Dine-in guests</label><input class="g-in" type="number" inputmode="numeric" placeholder="0"></div>
+        <div class="field"><label>To-go guests</label><input class="g-to" type="number" inputmode="numeric" placeholder="0"></div>
       </div>
       <div class="row total-row" style="margin-top:8px">
-        <div class="field"><label>売上 合計</label><input class="s-tot" type="number" inputmode="decimal" step="0.01" placeholder="0.00"></div>
+        <div class="field"><label>Total sales</label><input class="s-tot" type="number" inputmode="decimal" step="0.01" placeholder="0.00"></div>
       </div>
       <div class="row split-row" style="margin-top:8px">
-        <div class="field"><label>店内 売上</label><input class="s-in" type="number" inputmode="decimal" step="0.01" placeholder="0.00"></div>
-        <div class="field"><label>持帰 売上</label><input class="s-to" type="number" inputmode="decimal" step="0.01" placeholder="0.00"></div>
+        <div class="field"><label>Dine-in sales</label><input class="s-in" type="number" inputmode="decimal" step="0.01" placeholder="0.00"></div>
+        <div class="field"><label>To-go sales</label><input class="s-to" type="number" inputmode="decimal" step="0.01" placeholder="0.00"></div>
       </div>`;
     box.appendChild(el);
     if(ex){
@@ -546,9 +624,9 @@ function renderDeliveries(){
   deliveryRows.forEach((d,i)=>{
     const el=document.createElement("div"); el.className="dlv";
     el.innerHTML=`
-      <div class="field"><label>${i===0?"プラットフォーム":""}</label><input class="d-name" type="text" placeholder="Uber Eats / DoorDash..." value="${d.platform||""}"></div>
-      <div class="field" style="flex:0 1 160px"><label>${i===0?"金額":""}</label><input class="d-amt" type="number" inputmode="decimal" step="0.01" placeholder="0.00" value="${d.amount||""}"></div>
-      <button class="iconbtn" title="削除">×</button>`;
+      <div class="field"><label>${i===0?"Platform":""}</label><input class="d-name" type="text" placeholder="Uber Eats / DoorDash..." value="${d.platform||""}"></div>
+      <div class="field" style="flex:0 1 160px"><label>${i===0?"Amount":""}</label><input class="d-amt" type="number" inputmode="decimal" step="0.01" placeholder="0.00" value="${d.amount||""}"></div>
+      <button class="iconbtn" title="Remove">×</button>`;
     $(".d-name",el).oninput = e=> deliveryRows[i].platform=e.target.value;
     $(".d-amt",el).oninput  = e=>{ deliveryRows[i].amount=e.target.value; e.target.classList.remove("ocr-filled"); recalc(); };
     $(".iconbtn",el).onclick= ()=>{ deliveryRows.splice(i,1); renderDeliveries(); recalc(); };
@@ -584,7 +662,7 @@ async function loadExisting(){
   const store = currentStore(); if(!store){ return; }
   const date = $("#date").value;
   const info = $("#loadInfo");
-  // テンプレ既定のデリバリー行を用意
+  // prepare default delivery rows from template
   const tmpl = TEMPLATES[store.business_type] || TEMPLATES.other;
   deliveryRows = tmpl.deliveries.map(p=>({platform:p, amount:""}));
   currentReportId = null;
@@ -602,12 +680,12 @@ async function loadExisting(){
     }
     renderDayparts(rep.report_dayparts);
     renderDeliveries();
-    info.innerHTML = `<span style="color:var(--ok)">● 既存の報告を読み込みました（上書き保存できます）</span>`;
+    info.innerHTML = `<span style="color:var(--ok)">● Loaded an existing report (you can overwrite it).</span>`;
   }else{
     $("#discount").value=""; $("#note").value="";
     renderDayparts(null);
     renderDeliveries();
-    info.innerHTML = `<span style="color:var(--ink-soft)">○ 新規入力（${store.business_type} テンプレート）</span>`;
+    info.innerHTML = `<span style="color:var(--ink-soft)">○ New entry (${store.business_type} template)</span>`;
   }
   recalc();
 }
@@ -616,8 +694,8 @@ async function loadExisting(){
 async function saveReport(){
   const store = currentStore();
   const st=$("#saveStatus"); st.className="status";
-  if(!store){ st.className="status err"; st.textContent="店舗を選択してください"; return; }
-  $("#save").disabled=true; st.textContent="保存中…";
+  if(!store){ st.className="status err"; st.textContent="Please select a store"; return; }
+  $("#save").disabled=true; st.textContent="Saving...";
   try{
     const { data:{ user } } = await sb.auth.getUser();
     const { data:rep, error:e1 } = await sb.from("daily_reports").upsert({
@@ -631,7 +709,7 @@ async function saveReport(){
     if(e1) throw e1;
     const rid = rep.id;
 
-    // 子テーブルを入れ替え
+    // replace child rows
     await sb.from("report_dayparts").delete().eq("report_id", rid);
     await sb.from("report_deliveries").delete().eq("report_id", rid);
 
@@ -659,10 +737,10 @@ async function saveReport(){
     if(dlv.length){ const {error}=await sb.from("report_deliveries").insert(dlv); if(error) throw error; }
 
     currentReportId=rid;
-    st.className="status ok"; st.textContent="保存しました ✓";
-    $("#loadInfo").innerHTML=`<span style="color:var(--ok)">● 保存済み（上書き保存できます）</span>`;
+    st.className="status ok"; st.textContent="Saved ✓";
+    $("#loadInfo").innerHTML=`<span style="color:var(--ok)">● Saved (you can overwrite it).</span>`;
   }catch(err){
-    st.className="status err"; st.textContent="保存に失敗: "+(err.message||err);
+    st.className="status err"; st.textContent="Save failed: "+(err.message||err);
   }finally{ $("#save").disabled=false; setTimeout(()=>{ if(st.classList.contains("ok")) st.textContent=""; },4000); }
 }
 
@@ -677,8 +755,8 @@ async function runSummary(){
   const { data, error } = await q;
   const tbody=$("#rows"), empty=$("#emptyMsg");
   tbody.innerHTML="";
-  if(error){ empty.textContent="読み込みエラー: "+error.message; return; }
-  if(!data || !data.length){ empty.textContent="該当する報告はありません。"; $("#sSales").textContent="$0"; $("#sGuests").textContent="0"; $("#sCount").textContent="0"; return; }
+  if(error){ empty.textContent="Load error: "+error.message; return; }
+  if(!data || !data.length){ empty.textContent="No matching reports."; $("#sSales").textContent="$0"; $("#sGuests").textContent="0"; $("#sCount").textContent="0"; return; }
   empty.textContent="";
 
   let sumSales=0, sumGuests=0;
@@ -702,7 +780,7 @@ async function runSummary(){
   });
   $("#sSales").textContent  = money(sumSales);
   $("#sGuests").innerHTML   = intc(sumGuests)+'<small> ppl</small>';
-  $("#sCount").innerHTML    = data.length+'<small> 件</small>';
+  $("#sCount").innerHTML    = data.length+'<small></small>';
 }
 function openForEdit(storeId, date){
   switchTab("entry");
@@ -711,8 +789,145 @@ function openForEdit(storeId, date){
   window.scrollTo({top:0,behavior:"smooth"});
 }
 
+/* ---------- dashboard (weekly, all stores) ---------- */
+const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+function reportGrand(r){
+  const di=(r.report_dayparts||[]).reduce((a,d)=>a+num(d.total_sales),0);
+  const dl=(r.report_deliveries||[]).reduce((a,d)=>a+num(d.amount),0);
+  return di+dl-num(r.discount);
+}
+function reportGuests(r){
+  return (r.report_dayparts||[]).reduce((a,d)=>a+(d.dine_in_guests||0)+(d.to_go_guests||0),0);
+}
+function addDaysISO(iso, n){ const d=new Date(iso+"T00:00:00"); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
+function shiftDashWeek(n){ $("#dEnd").value = addDaysISO($("#dEnd").value || todayISO(), n); runDashboard(); }
+
+async function runDashboard(){
+  const end = $("#dEnd").value || todayISO();
+  const dates = []; for(let i=6;i>=0;i--) dates.push(addDaysISO(end,-i));
+  const start = dates[0];
+  $("#dRange").textContent = start+" – "+end;
+
+  const { data, error } = await sb.from("daily_reports")
+    .select("store_id, report_date, discount, stores(name,business_type), report_dayparts(dine_in_guests,to_go_guests,total_sales), report_deliveries(amount)")
+    .gte("report_date",start).lte("report_date",end);
+
+  const head=$("#dHead"), body=$("#dBody"), foot=$("#dFoot"), empty=$("#dEmpty");
+  head.innerHTML=""; body.innerHTML=""; foot.innerHTML="";
+  if(error){ empty.textContent="Load error: "+error.message; return; }
+
+  // aggregate: byStore[storeId][date] = {grand, guests}
+  const byStore={}, storeName={}, storeType={};
+  let weekSales=0, weekGuests=0;
+  const dayTotals={}; dates.forEach(d=> dayTotals[d]=0);
+  (data||[]).forEach(r=>{
+    const g=reportGrand(r), gu=reportGuests(r);
+    byStore[r.store_id] = byStore[r.store_id] || {};
+    byStore[r.store_id][r.report_date] = { grand:g, guests:gu };
+    storeName[r.store_id]=r.stores?.name||""; storeType[r.store_id]=r.stores?.business_type||"other";
+    weekSales+=g; weekGuests+=gu; dayTotals[r.report_date]+=g;
+  });
+
+  // store order follows the stores master (also show stores with no reports)
+  const orderedStores = me.stores.length ? me.stores.map(s=>s.id) : Object.keys(byStore);
+
+  // header
+  let h = '<th style="text-align:left">Store</th>';
+  dates.forEach(d=>{ const dd=new Date(d+"T00:00:00"); h+=`<th>${d.slice(5)}<br><span class="muted" style="font-weight:400">(${DOW[dd.getDay()]})</span></th>`; });
+  h += '<th>Week total</th>';
+  head.innerHTML=h;
+
+  // rows
+  let anyRow=false;
+  orderedStores.forEach(sid=>{
+    const row = byStore[sid]; 
+    const name = storeName[sid] || (me.stores.find(s=>s.id===sid)?.name) || "";
+    const bt = storeType[sid] || (me.stores.find(s=>s.id===sid)?.business_type) || "other";
+    let rowTotal=0, cells="";
+    dates.forEach(d=>{
+      const c = row && row[d];
+      if(c){ rowTotal+=c.grand; cells+=`<td class="num">${money(c.grand)}</td>`; }
+      else { cells+=`<td class="num" style="color:var(--line)">—</td>`; }
+    });
+    if(rowTotal>0) anyRow=true;
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td style="text-align:left">${name} <span class="bt ${bt}">${bt}</span></td>${cells}<td class="num"><b>${money(rowTotal)}</b></td>`;
+    body.appendChild(tr);
+  });
+
+  // footer (day totals + week total)
+  let f = '<th style="text-align:left">Day total</th>';
+  dates.forEach(d=> f+=`<th class="num">${money(dayTotals[d])}</th>`);
+  f += `<th class="num">${money(weekSales)}</th>`;
+  foot.innerHTML=f;
+
+  empty.textContent = anyRow ? "" : "No reports for this week yet.";
+  $("#dSales").textContent  = money(weekSales);
+  $("#dGuests").innerHTML   = intc(weekGuests)+'<small> ppl</small>';
+  $("#dAvg").textContent    = money(weekSales/7);
+}
+
+/* ---------- tips (by hours; calculation only) ---------- */
+let tipStaff = [];
+function runTip(){
+  if($("#tipStore").options.length===0) buildStoreSelect($("#tipStore"), false);
+  if(!$("#tipDate").value) $("#tipDate").value = todayISO();
+  if(tipStaff.length===0){ tipStaff=[{name:"",hours:""},{name:"",hours:""}]; }
+  renderTipStaff();
+}
+function renderTipStaff(){
+  const box=$("#tipStaff"); box.innerHTML="";
+  tipStaff.forEach((s,i)=>{
+    const el=document.createElement("div"); el.className="dlv";
+    el.innerHTML=`
+      <div class="field"><label>${i===0?"Name":""}</label><input class="ts-name" type="text" placeholder="Staff name" value="${(s.name||"").replace(/"/g,'&quot;')}"></div>
+      <div class="field" style="flex:0 1 150px"><label>${i===0?"Hours (h)":""}</label><input class="ts-hrs" type="number" inputmode="decimal" step="0.25" placeholder="0" value="${s.hours||""}"></div>
+      <button class="iconbtn" title="Remove">×</button>`;
+    $(".ts-name",el).oninput = e=>{ tipStaff[i].name=e.target.value; recalcTips(); };
+    $(".ts-hrs",el).oninput  = e=>{ tipStaff[i].hours=e.target.value; recalcTips(); };
+    $(".iconbtn",el).onclick = ()=>{ tipStaff.splice(i,1); renderTipStaff(); recalcTips(); };
+    box.appendChild(el);
+  });
+  recalcTips();
+}
+function recalcTips(){
+  const total = num($("#tipTotal").value);
+  const rows = tipStaff.map(s=>({ name:(s.name||"").trim(), hours:num(s.hours) }));
+  const totalHours = rows.reduce((a,r)=>a+r.hours,0);
+  $("#tipHours").innerHTML = (Math.round(totalHours*100)/100)+'<small style="font-size:12px;color:var(--ink-soft)"> h</small>';
+  const rate = totalHours>0 ? total/totalHours : 0;
+  $("#tipRate").textContent = money(rate);
+
+  const tbody=$("#tipResult"); tbody.innerHTML="";
+  const msg=$("#tipMsg");
+  if(totalHours<=0){ msg.textContent="Enter hours to see the distribution."; $("#tipDist").textContent=money(0); return; }
+  if(total<=0){ msg.textContent="Please enter the total tips."; }
+  else msg.textContent="";
+
+  // each share (cent rounding adjusted so the sum matches the total exactly)
+  let shares = rows.map(r=> Math.round(r.hours*rate*100)/100);
+  let diff = Math.round((total - shares.reduce((a,b)=>a+b,0))*100)/100;
+  if(Math.abs(diff) >= 0.01){
+    let idx=0, max=-1;
+    rows.forEach((r,i)=>{ if(r.hours>max){ max=r.hours; idx=i; } });
+    shares[idx] = Math.round((shares[idx]+diff)*100)/100;
+  }
+  let distSum=0;
+  rows.forEach((r,i)=>{
+    distSum += shares[i];
+    const pct = totalHours>0 ? (r.hours/totalHours*100) : 0;
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td style="text-align:left">${r.name||'<span class="muted">(no name)</span>'}</td>
+      <td class="num">${Math.round(r.hours*100)/100} h</td>
+      <td class="num">${pct.toFixed(1)}%</td>
+      <td class="num"><b>${money(shares[i])}</b></td>`;
+    tbody.appendChild(tr);
+  });
+  $("#tipDist").textContent = money(distSum);
+}
+
 /* ===================================================================== */
-/*  写真から読み取り (OCR)  — 印刷の表(Ramen レイアウト)向け。要確認の下書き。  */
+/*  Scan from photo (OCR) - for printed tables (Ramen layout). Draft; needs review.  */
 /* ===================================================================== */
 let tesseractLoading=null;
 function ensureTesseract(){
@@ -721,7 +936,7 @@ function ensureTesseract(){
   tesseractLoading = new Promise((resolve,reject)=>{
     const s=document.createElement("script");
     s.src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
-    s.onload=resolve; s.onerror=()=>reject(new Error("OCRライブラリの読み込みに失敗しました"));
+    s.onload=resolve; s.onerror=()=>reject(new Error("Failed to load the OCR library"));
     document.head.appendChild(s);
   });
   return tesseractLoading;
@@ -729,13 +944,13 @@ function ensureTesseract(){
 
 async function handleOcrFile(e){
   const file = e.target.files && e.target.files[0];
-  e.target.value=""; // 同じ写真を続けて選べるように
+  e.target.value=""; // allow selecting the same photo again
   if(!file) return;
   const st=$("#ocrStatus");
-  st.style.color="var(--ink-soft)"; st.textContent="読み込み中…（初回は数秒かかります）";
+  st.style.color="var(--ink-soft)"; st.textContent="Loading... (first time takes a few seconds)";
   try{
     await ensureTesseract();
-    st.textContent="解析中…";
+    st.textContent="Analyzing...";
     const worker = await Tesseract.createWorker("eng");
     const { data } = await worker.recognize(file);
     await worker.terminate();
@@ -743,18 +958,18 @@ async function handleOcrFile(e){
     const filled = applyOcr(parsed);
     if(filled>0){
       st.style.color="var(--ok)";
-      st.textContent="読み取りました。黄色い欄を確認・修正して保存してください。";
+      st.textContent="Scanned. Review and correct the yellow fields, then save.";
     }else{
       st.style.color="var(--shu)";
-      st.textContent="数字をうまく読み取れませんでした。手入力するか、撮り直してください。";
+      st.textContent="Couldn't read the numbers reliably. Enter them manually or retake the photo.";
     }
   }catch(err){
     st.style.color="var(--shu)";
-    st.textContent="読み取りに失敗しました："+(err.message||err);
+    st.textContent="Scan failed: "+(err.message||err);
   }
 }
 
-/* OCRテキストから Ramen レイアウトの値を推定 */
+/* Estimate Ramen-layout values from OCR text */
 function parseRamenOCR(raw){
   let t = raw.replace(/(\d),(?=\d{3}(\D|$))/g,"$1");      // 1,519.10 -> 1519.10
   const lines = t.split(/\n+/).map(l=>l.trim()).filter(Boolean);
@@ -769,7 +984,7 @@ function parseRamenOCR(raw){
       if(cur){
         const hasDine = /dine|here/.test(low);
         if(hasDine && n.length) res[cur].dine_in = Math.round(n[0]);
-        const m = low.match(/(?:to\s*go|togo)\D*(\d+)/);   // 「To go」の後ろの数字
+        const m = low.match(/(?:to\s*go|togo)\D*(\d+)/);   // number after the 'To go' keyword
         if(m) res[cur].to_go = parseInt(m[1],10);
         else if(!hasDine && n.length) res[cur].to_go = Math.round(n[0]);
       }
