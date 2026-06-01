@@ -955,6 +955,8 @@ async function handleOcrFile(e){
     const { data } = await worker.recognize(file);
     await worker.terminate();
     const parsed = parseRamenOCR(data.text || "");
+    console.log("[OCR] raw text:\n"+(data.text||""));
+    console.log("[OCR] parsed:", parsed);
     const filled = applyOcr(parsed);
     if(filled>0){
       st.style.color="var(--ok)";
@@ -978,29 +980,31 @@ function parseRamenOCR(raw){
   let cur=null;
   for(const line of lines){
     const low=line.toLowerCase(), n=numsOf(line);
-    if(/\blunch\b/.test(low)){ cur="lunch"; assignTotal(res.lunch,n); continue; }
-    if(/\bdinner\b/.test(low)){ cur="dinner"; assignTotal(res.dinner,n); continue; }
-    if(/dine|here|to\s*go|togo/.test(low)){
-      if(cur){
-        const hasDine = /dine|here/.test(low);
-        if(hasDine && n.length) res[cur].dine_in = Math.round(n[0]);
-        const m = low.match(/(?:to\s*go|togo)\D*(\d+)/);   // number after the 'To go' keyword
-        if(m) res[cur].to_go = parseInt(m[1],10);
-        else if(!hasDine && n.length) res[cur].to_go = Math.round(n[0]);
-      }
-      continue;
-    }
-    if(/uber/.test(low)){ if(n.length) res.uber=pickMoney(n); continue; }
-    if(/door\s*dash/.test(low)){ if(n.length) res.doordash=pickMoney(n); continue; }
+    if(/lunch/.test(low)){ cur="lunch"; fillFrom(res.lunch,line,true); continue; }
+    if(/dinner|inner/.test(low)){ cur="dinner"; fillFrom(res.dinner,line,true); continue; }
+    if(/total/.test(low)){ cur=null; continue; }           // stop: don't read the grand total
+    if(/uber/.test(low)){ if(n.length) res.uber=pickMoney(n); cur=null; continue; }
+    if(/door\s*dash/.test(low)){ if(n.length) res.doordash=pickMoney(n); cur=null; continue; }
+    if(cur) fillFrom(res[cur], line, false);               // continuation line within a section
   }
   return res;
 }
-function assignTotal(obj, n){
-  if(!n.length) return;
-  const dec = n.filter(x=> !Number.isInteger(x));
-  obj.sales = dec.length ? Math.max(...dec) : (n.length>1 ? Math.max(...n) : null);
-  const ints = n.filter(x=> Number.isInteger(x) && x>0 && x<3000 && x!==obj.sales);
-  if(ints.length) obj.guests = Math.min(...ints);
+/* 1行から不足分だけを埋める（売上が別行に出ても拾える） */
+function fillFrom(obj, line, isHeader){
+  const low=line.toLowerCase();
+  const n=(line.match(/\d+(?:\.\d+)?/g)||[]).map(Number);
+  if(obj.sales==null){
+    const dec=n.filter(x=>!Number.isInteger(x));
+    if(dec.length) obj.sales=Math.max(...dec);
+    else if(isHeader && n.length>1) obj.sales=Math.max(...n);
+  }
+  if(/dine|here/.test(low) && obj.dine_in==null && n.length) obj.dine_in=Math.round(n[0]);
+  const m=low.match(/(?:to\s*go|togo)\D*(\d+)/);
+  if(m && obj.to_go==null) obj.to_go=parseInt(m[1],10);
+  if(isHeader && obj.guests==null){
+    const ints=n.filter(x=>Number.isInteger(x)&&x>0&&x<3000&&x!==obj.sales);
+    if(ints.length) obj.guests=Math.min(...ints);
+  }
 }
 function pickMoney(n){ const d=n.filter(x=>!Number.isInteger(x)); return d.length?Math.max(...d):Math.max(...n); }
 
